@@ -4,11 +4,11 @@ version = "0.24.0" # remember to update html_root_url
 authors = [
     "Agoston Horvath <ahorvath@bol.com>",
     "Dávid Kosztka <dkosztka@bol.com>",
-    "Hannes de Jager <hdejager@bol.com>",
+    "Hannes de Jager <hannes@cloudinvoke.com>",
     "Koen Wilde <koen@chillheid.nl>",
     "Maarten Dirkse <mdirkse@bol.com>",
     "Steven Meunier <smeunier@bol.com>",
-    "Rob klein Gunnewiek <rkleingunnewiek@bol.com>",
+    "Rob klein Gunnewiek <rob@cloudinvoke.com>",
 ]
 description = "Extensible, async, cloud orientated FTP(S) server library."
 documentation = "https://docs.rs/libunftp/"
