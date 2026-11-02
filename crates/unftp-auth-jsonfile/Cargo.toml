@@ -5,8 +5,8 @@ description = "An authentication back-end for libunftp that authenticates agains
 authors = [
     "Agoston Horvath <ahorvath@bol.com>",
     "Dávid Kosztka <dkosztka@bol.com>",
-    "Hannes de Jager <hdejager@bol.com>",
-    "Rob klein Gunnewiek <rkleingunnewiek@bol.com>",
+    "Hannes de Jager <hannes@cloudinvoke.com>",
+    "Rob klein Gunnewiek <rob@cloudinvoke.com>",
 ]
 edition = "2024"
 license = "Apache-2.0"
