@@ -779,7 +779,7 @@ where
     ///
     /// Clients send `SITE <NAME> [arguments]` and the server will call `handler.handle()` with a
     /// [`SiteCommandContext`](options::SiteCommandContext) containing the arguments, the current
-    /// username, and access to the storage back-end. The `name` is case-insensitive; it is
+    /// username and working directory, and access to the storage back-end. The `name` is case-insensitive; it is
     /// normalised to uppercase internally.
     ///
     /// Names must contain only ASCII letters, digits, `-`, or `_`. Subcommands cannot be

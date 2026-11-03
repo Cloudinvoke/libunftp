@@ -6,6 +6,7 @@ use crate::storage::{Metadata, StorageBackend};
 use async_trait::async_trait;
 use bitflags::bitflags;
 use std::ops::RangeInclusive;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use std::{
@@ -178,6 +179,11 @@ pub enum SiteMd5 {
 
 /// Context passed to a custom [`SiteCommandHandler`]. Custom SITE commands are dispatched only
 /// after the client has authenticated successfully.
+///
+/// The context is a snapshot of the session taken when the command is dispatched. It is
+/// `#[non_exhaustive]` so that fields can be added without breaking handlers; outside libunftp,
+/// build one with [`SiteCommandContext::new`].
+#[non_exhaustive]
 pub struct SiteCommandContext<Storage, User>
 where
     Storage: StorageBackend<User> + 'static,
@@ -197,6 +203,64 @@ where
     pub user: Arc<Option<User>>,
     /// The logger associated with the session.
     pub logger: slog::Logger,
+    /// The session's current working directory, as set by `CWD` and `CDUP`. Resolve relative paths
+    /// in [`arguments`](Self::arguments) against it, as the built-in commands do.
+    pub cwd: PathBuf,
+    /// The IP address of the client. In proxy protocol mode this is the client's address as
+    /// reported by the proxy, not the proxy's own address.
+    pub source_ip: IpAddr,
+    /// Identifies the session in log statements and in
+    /// [`EventMeta::trace_id`](crate::notification::EventMeta::trace_id).
+    pub trace_id: String,
+}
+
+impl<Storage, User> SiteCommandContext<Storage, User>
+where
+    Storage: StorageBackend<User> + 'static,
+    Storage::Metadata: Metadata,
+    User: UserDetail + 'static,
+{
+    /// Creates a context, for example to unit test a [`SiteCommandHandler`].
+    ///
+    /// The remaining fields describe a session with no authenticated user, a working directory of
+    /// `/`, an unspecified source IP address and an empty trace ID. Assign them directly to describe
+    /// a different session.
+    ///
+    /// # Parameters
+    ///
+    /// - `command`: the SITE subcommand name; it is normalised to uppercase.
+    /// - `arguments`: the text following the subcommand name.
+    /// - `storage`: the storage back-end the handler should use.
+    /// - `logger`: the logger the handler should use.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libunftp::options::SiteCommandContext;
+    /// use std::sync::Arc;
+    /// use unftp_core::auth::DefaultUser;
+    /// use unftp_sbe_fs::Filesystem;
+    ///
+    /// let storage = Arc::new(Filesystem::new(std::env::temp_dir()).unwrap());
+    /// let logger = slog::Logger::root(slog::Discard, slog::o!());
+    /// let mut ctx = SiteCommandContext::<Filesystem, DefaultUser>::new("send", "file.txt", storage, logger);
+    /// ctx.username = Some("alice".to_string());
+    /// ctx.cwd = "/orders".into();
+    /// assert_eq!(ctx.command, "SEND");
+    /// ```
+    pub fn new(command: impl Into<String>, arguments: impl Into<String>, storage: Arc<Storage>, logger: slog::Logger) -> Self {
+        SiteCommandContext {
+            command: command.into().to_ascii_uppercase(),
+            arguments: arguments.into(),
+            username: None,
+            storage,
+            user: Arc::new(None),
+            logger,
+            cwd: PathBuf::from("/"),
+            source_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+            trace_id: String::new(),
+        }
+    }
 }
 
 impl<Storage, User> std::fmt::Debug for SiteCommandContext<Storage, User>
@@ -210,6 +274,9 @@ where
             .field("command", &self.command)
             .field("arguments", &self.arguments)
             .field("username", &self.username)
+            .field("cwd", &self.cwd)
+            .field("source_ip", &self.source_ip)
+            .field("trace_id", &self.trace_id)
             .finish_non_exhaustive()
     }
 }
