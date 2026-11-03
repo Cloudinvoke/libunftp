@@ -17,6 +17,7 @@ use unftp_sbe_fs::Filesystem;
 use common::{read_from_server, send_to_server};
 
 const ADDR: &str = "127.0.0.1:2155";
+const SITE_CWD_DIR: &str = "libunftp-site-cwd-test";
 
 lazy_static! {
     static ref CONSUMERS: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
@@ -52,13 +53,46 @@ where
     }
 }
 
+#[derive(Debug)]
+struct WhereAmIHandler;
+
+#[async_trait]
+impl<Storage, User> SiteCommandHandler<Storage, User> for WhereAmIHandler
+where
+    Storage: StorageBackend<User> + 'static,
+    Storage::Metadata: Metadata,
+    User: UserDetail + 'static,
+{
+    async fn handle(&self, ctx: &SiteCommandContext<Storage, User>) -> Reply {
+        Reply::new(ReplyCode::CommandOkay, &ctx.cwd.to_string_lossy())
+    }
+}
+
+#[derive(Debug)]
+struct ConnectionHandler;
+
+#[async_trait]
+impl<Storage, User> SiteCommandHandler<Storage, User> for ConnectionHandler
+where
+    Storage: StorageBackend<User> + 'static,
+    Storage::Metadata: Metadata,
+    User: UserDetail + 'static,
+{
+    async fn handle(&self, ctx: &SiteCommandContext<Storage, User>) -> Reply {
+        Reply::new(ReplyCode::CommandOkay, &format!("{} {}", ctx.source_ip, ctx.trace_id))
+    }
+}
+
 async fn run_with_site_handlers() {
     let root = std::env::temp_dir();
+    std::fs::create_dir_all(root.join(SITE_CWD_DIR)).unwrap();
     let server = ServerBuilder::new(Box::new(move || Filesystem::new(root.clone()).unwrap()))
         .authenticator(Arc::new(TestAuthenticator {}))
         .greeting("Welcome test")
         .site_command("ECHO", EchoHandler)
         .site_command("WHOAMI", WhoAmIHandler)
+        .site_command("WHEREAMI", WhereAmIHandler)
+        .site_command("CONNECTION", ConnectionHandler)
         .build()
         .unwrap();
     server.listen(ADDR).await.unwrap();
@@ -154,6 +188,51 @@ async fn test_custom_site_command_receives_session_context() {
 
     send_to_server("SITE WHOAMI\r\n", &stream).await;
     assert_eq!(read_from_server(&mut buffer, &stream).await, "200 test\r\n");
+
+    finalize().await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn test_custom_site_command_receives_cwd() {
+    initialize().await;
+
+    let stream = tcp_connect().await.unwrap();
+    let mut buffer = vec![0_u8; 1024];
+    login(&stream, &mut buffer).await;
+
+    send_to_server("SITE WHEREAMI\r\n", &stream).await;
+    assert_eq!(read_from_server(&mut buffer, &stream).await, "200 /\r\n");
+
+    send_to_server(&format!("CWD {SITE_CWD_DIR}\r\n"), &stream).await;
+    assert_eq!(read_from_server(&mut buffer, &stream).await, "250 Successfully changed working directory\r\n");
+    send_to_server("SITE WHEREAMI\r\n", &stream).await;
+    assert_eq!(read_from_server(&mut buffer, &stream).await, format!("200 /{SITE_CWD_DIR}\r\n"));
+
+    send_to_server("CDUP\r\n", &stream).await;
+    assert_eq!(read_from_server(&mut buffer, &stream).await, "250 OK\r\n");
+    send_to_server("SITE WHEREAMI\r\n", &stream).await;
+    assert_eq!(read_from_server(&mut buffer, &stream).await, "200 /\r\n");
+
+    finalize().await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn test_custom_site_command_receives_connection_details() {
+    initialize().await;
+
+    let stream = tcp_connect().await.unwrap();
+    let mut buffer = vec![0_u8; 1024];
+    login(&stream, &mut buffer).await;
+
+    send_to_server("SITE CONNECTION\r\n", &stream).await;
+    let reply = read_from_server(&mut buffer, &stream).await;
+    let (source_ip, trace_id) = reply
+        .strip_prefix("200 ")
+        .and_then(|rest| rest.strip_suffix("\r\n"))
+        .and_then(|rest| rest.split_once(' '))
+        .unwrap_or_else(|| panic!("unexpected reply {reply:?}"));
+    assert_eq!(source_ip, "127.0.0.1");
+    assert!(trace_id.starts_with("0x"), "unexpected trace ID {trace_id:?}");
 
     finalize().await;
 }
