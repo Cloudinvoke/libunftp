@@ -104,6 +104,7 @@ dashmap = "6.2.1"
 [dev-dependencies]
 libunftp = { path = "." }
 pretty_assertions = "1.4.1"
+rustls = { version = "0.23.46", default-features = false }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 unftp-sbe-fs = { path = "crates/unftp-sbe-fs" }
 

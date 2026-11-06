@@ -13,7 +13,7 @@ use crate::{
             auth::AuthMiddleware,
             codecs::FtpCodec,
             command::Command,
-            commands,
+            commands::{self, AuthParam},
             error::ControlChanError,
             error::ControlChanErrorKind,
             ftps::{FtpsControlChanEnforcerMiddleware, FtpsDataChanEnforcerMiddleware},
@@ -35,7 +35,7 @@ use futures_util::{SinkExt, StreamExt};
 use rustls::ServerConnection;
 use std::{collections::HashMap, net::SocketAddr, ops::RangeInclusive, sync::Arc, time::Duration};
 use tokio::{
-    io::{AsyncRead, AsyncWrite},
+    io::{AsyncRead, AsyncReadExt, AsyncWrite},
     net::TcpStream,
     sync::{
         Mutex,
@@ -48,6 +48,42 @@ use tokio_util::codec::{Decoder, Framed};
 trait AsyncReadAsyncWriteSendUnpin: AsyncRead + AsyncWrite + Send + Unpin {}
 
 impl<T: AsyncRead + AsyncWrite + Send + Unpin> AsyncReadAsyncWriteSendUnpin for T {}
+
+type ControlChannel = Framed<Box<dyn AsyncReadAsyncWriteSendUnpin>, FtpCodec>;
+
+/// Runs the server side of the TLS handshake on the control connection after the 234 reply to
+/// `AUTH TLS`. Returns the secured connection and the client's certificate chain, if it sent one.
+///
+/// Bytes the client sent after the `AUTH TLS` line that the codec has already read (the start of
+/// the handshake, sent together with the command) are handed to the TLS acceptor, not dropped.
+async fn accept_tls(
+    channel: ControlChannel,
+    ftps_config: &FtpsConfig,
+) -> std::io::Result<(Box<dyn AsyncReadAsyncWriteSendUnpin>, Option<Vec<unftp_core::auth::ClientCert>>)> {
+    let acceptor: tokio_rustls::TlsAcceptor = match ftps_config {
+        FtpsConfig::On { tls_config } => tls_config.clone().into(),
+        _ => panic!("Could not create TLS acceptor. Illegal program state"),
+    };
+    let parts = channel.into_parts();
+    if parts.read_buf.is_empty() {
+        Ok(secured(acceptor.accept(parts.io).await?))
+    } else {
+        let (read, write) = tokio::io::split(parts.io);
+        let io = tokio::io::join(std::io::Cursor::new(parts.read_buf).chain(read), write);
+        Ok(secured(acceptor.accept(io).await?))
+    }
+}
+
+fn secured<IO>(stream: tokio_rustls::server::TlsStream<IO>) -> (Box<dyn AsyncReadAsyncWriteSendUnpin>, Option<Vec<unftp_core::auth::ClientCert>>)
+where
+    IO: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+{
+    let connection: &ServerConnection = stream.get_ref().1;
+    let cert_chain = connection
+        .peer_certificates()
+        .map(|certs| certs.iter().map(|c| unftp_core::auth::ClientCert(c.as_ref().to_vec())).collect());
+    (Box::new(stream), cert_chain)
+}
 
 #[derive(Debug, Clone)]
 pub struct Config<Storage, User>
@@ -236,57 +272,61 @@ where
                     return;
                 }
                 Some(Ok(event)) => {
-                    if let Event::InternalMsg(ControlChanMsg::SecureControlChannel) = event {
-                        slog::info!(logger, "Upgrading control channel to TLS");
-
-                        // Get back the original TCP Stream
-                        let codec_io = reply_sink.reunite(command_source).unwrap();
-                        let io = codec_io.into_inner();
-
-                        // Wrap in TLS Stream
-                        let acceptor: tokio_rustls::TlsAcceptor = match ftps_config.clone() {
-                            FtpsConfig::On { tls_config } => tls_config.into(),
-                            _ => panic!("Could not create TLS acceptor. Illegal program state"),
-                        };
-                        let accepted = acceptor.accept(io).await;
-                        let io: Box<dyn AsyncReadAsyncWriteSendUnpin> = match accepted {
-                            Ok(stream) => {
-                                let s: &ServerConnection = stream.get_ref().1;
-                                if let Some(certs) = s.peer_certificates() {
-                                    let mut session = shared_session.lock().await;
-                                    session.cert_chain = Some(certs.iter().map(|c| unftp_core::auth::ClientCert(c.as_ref().to_vec())).collect());
-                                }
-                                Box::new(stream)
-                            }
-                            Err(err) => {
-                                slog::warn!(logger, "Closing control channel. Could not upgrade to TLS: {}", err);
-                                return;
-                            }
-                        };
-
-                        // Wrap in codec again and get sink + source
-                        let codec = FtpCodec::new();
-                        let cmd_and_reply_stream = codec.framed(io);
-                        let (sink, src) = cmd_and_reply_stream.split();
-                        reply_sink = sink;
-                        command_source = src;
-                    }
-
                     if let Event::Command(Command::User { username }) = &event {
                         let s: String = String::from_utf8_lossy(username).into();
                         logger = logger.new(slog::o!("username" => s));
                     }
 
+                    let auth_tls = matches!(event, Event::Command(Command::Auth { protocol: AuthParam::Tls }));
+
                     // TODO: Handle Event::InternalMsg(InternalMsg::PlaintextControlChannel)
 
                     let handle_result = match event_chain.handle(event).await {
                         Err(e) => Err(e),
-                        Ok(reply) => reply_sink.send(reply).await,
+                        Ok(reply) => {
+                            let start_tls = auth_tls
+                                && matches!(
+                                    reply,
+                                    Reply::CodeAndMsg {
+                                        code: ReplyCode::AuthOkayNoDataNeeded,
+                                        ..
+                                    }
+                                );
+                            reply_sink.send(reply).await.map(|()| start_tls)
+                        }
                     };
 
-                    if let Err(chan_err) = handle_result {
-                        slog::warn!(logger, "Event handler chain error: {:?}. Closing control connection", chan_err);
-                        return;
+                    match handle_result {
+                        Err(chan_err) => {
+                            slog::warn!(logger, "Event handler chain error: {:?}. Closing control connection", chan_err);
+                            return;
+                        }
+                        Ok(false) => {}
+                        Ok(true) => {
+                            // The 234 reply to AUTH TLS is out and the client starts the TLS
+                            // handshake right after reading it, so TLS starts here, before
+                            // anything else is read from the plain connection.
+                            slog::info!(logger, "Upgrading control channel to TLS");
+                            let channel = reply_sink.reunite(command_source).expect("halves of the same control channel");
+                            let (io, cert_chain) = match accept_tls(channel, &ftps_config).await {
+                                Ok(accepted) => accepted,
+                                Err(err) => {
+                                    slog::warn!(logger, "Closing control channel. Could not upgrade to TLS: {}", err);
+                                    return;
+                                }
+                            };
+                            if cert_chain.is_some() {
+                                shared_session.lock().await.cert_chain = cert_chain;
+                            }
+                            let (sink, src) = FtpCodec::new().framed(io).split();
+                            reply_sink = sink;
+                            command_source = src;
+
+                            if let Err(chan_err) = event_chain.handle(Event::InternalMsg(ControlChanMsg::SecureControlChannel)).await {
+                                slog::warn!(logger, "Event handler chain error: {:?}. Closing control connection", chan_err);
+                                return;
+                            }
+                        }
                     }
                 }
                 Some(Err(e)) => {
