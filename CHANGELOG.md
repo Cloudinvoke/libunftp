@@ -4,6 +4,9 @@
 
 - Move libunftp and unFTP from bol.com to [CloudInvoke](https://github.com/Cloudinvoke).
   The GitHub repository is now [Cloudinvoke/libunftp](https://github.com/Cloudinvoke/libunftp).
+- [#606](https://github.com/Cloudinvoke/libunftp/pull/606) Start TLS on the control channel right after the
+  `234` reply to `AUTH TLS`, so a client that sends its ClientHello at once is no longer answered in plain text
+  ([#605](https://github.com/Cloudinvoke/libunftp/issues/605)).
 - [#601](https://github.com/bolcom/libunftp/pull/601) Upgrade `base64` to 0.23.1 for the JSON-file
   authenticator, and the filesystem backend's test dependencies to `nix` 0.31.3
   and `rstest` 0.28.0. These backend releases are pending.
