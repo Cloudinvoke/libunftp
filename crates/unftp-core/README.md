@@ -12,7 +12,7 @@ When you need to FTP, but don't want to.
 [**Website**](https://unftp.rs) | [**API docs**](https://docs.rs/unftp-core) |
 [**libunftp**](https://github.com/Cloudinvoke/libunftp) | [**unFTP server**](https://github.com/Cloudinvoke/unFTP)
 
-This crate contains the core traits and types for [unFTP](https://unftp.rs/) backends (extensions).
+This crate contains the core traits and types for [unFTP](https://unftp.rs/) backends. If you are implementing unFTP back-ends use this crate.
 
 ## About the wider unFTP project
 

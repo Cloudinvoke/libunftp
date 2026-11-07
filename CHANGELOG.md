@@ -11,11 +11,14 @@
   authenticator, and the filesystem backend's test dependencies to `nix` 0.31.3
   and `rstest` 0.28.0. These backend releases are pending.
 
+### unftp-core 0.1.1
+
 - [#601](https://github.com/bolcom/libunftp/pull/601) Upgrade `unftp-core`'s `md-5` dependency to 0.11.0 while preserving
   the default storage implementation's 32-character lowercase hexadecimal MD5 output.
 - [#595](https://github.com/bolcom/libunftp/pull/595) Clarify authentication and storage contracts,
   correct rustdoc links, and improve the README in `unftp-core`. Public trait signatures are unchanged.
-  The core release is pending.
+- [#602](https://github.com/Cloudinvoke/libunftp/pull/602) Update repository and author metadata, and use an absolute URL for the README logo so it displays on crates.io.
+- Explain prominently that backend implementers should use `unftp-core`.
 
 ### unftp-auth-rest v0.3.1
 
