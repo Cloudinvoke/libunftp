@@ -98,7 +98,7 @@ tokio-rustls = { version = "0.26.6", default-features = false }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing.workspace = true
 tracing-attributes.workspace = true
-uuid = { version = "1.29.0", features = ["v4"] }
+uuid = { version = "1.29.1", features = ["v4"] }
 dashmap = "6.2.1"
 
 [dev-dependencies]

@@ -1,7 +1,7 @@
 [package]
 name = "unftp-sbe-gcs"
 description = "A storage back-end for libunftp, storing files in Google Cloud Storage (GCS)"
-version = "0.3.1"
+version = "0.3.2"
 authors = [
     "Agoston Horvath <ahorvath@bol.com>",
     "Dávid Kosztka <dkosztka@bol.com>",
@@ -28,7 +28,7 @@ hyper.workspace = true
 hyper-rustls.workspace = true
 hyper-util.workspace = true
 unftp-core.workspace = true
-mime = "0.3.17"
+mime = "0.3.18"
 percent-encoding.workspace = true
 rustls-webpki.workspace = true
 serde.workspace = true

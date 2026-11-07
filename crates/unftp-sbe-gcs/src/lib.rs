@@ -1,6 +1,6 @@
 #![allow(clippy::unnecessary_wraps)]
 
-//! An storage back-end for [libunftp](https://github.com/Cloudinvoke/libunftp) that let you store files
+//! A storage backend for [libunftp](https://github.com/Cloudinvoke/libunftp) that stores files
 //! in [Google Cloud Storage](https://cloud.google.com/storage).
 //!
 //! # Usage
@@ -10,7 +10,7 @@
 //! ```toml
 //! [dependencies]
 //! libunftp = "0.24.0"
-//! unftp-sbe-gcs = "0.3.1"
+//! unftp-sbe-gcs = "0.3.2"
 //! tokio = { version = "1", features = ["full"] }
 //! ```
 //!
@@ -31,7 +31,7 @@
 //!       .build()
 //!       .unwrap();
 //!
-//!     server.listen("127.0.0.1:2121").await;
+//!     server.listen("127.0.0.1:2121").await.unwrap();
 //! }
 //! ```
 //!
@@ -55,8 +55,7 @@ use std::{
 use unftp_core::auth::UserDetail;
 use unftp_core::storage::{Error, ErrorKind, Fileinfo, Metadata, StorageBackend};
 
-/// A [`StorageBackend`] that uses Cloud storage from Google.
-/// cloned for each controlchan!
+/// A [`StorageBackend`] that stores files in Google Cloud Storage.
 #[derive(Clone, Debug)]
 pub struct CloudStorage {
     gcs: GcsClient,

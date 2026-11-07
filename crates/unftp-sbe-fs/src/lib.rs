@@ -16,7 +16,7 @@
 //!         .build()
 //!         .unwrap();
 //!
-//!     server.listen("127.0.0.1:2121").await;
+//!     server.listen("127.0.0.1:2121").await.unwrap();
 //! }
 //! ```
 
@@ -43,7 +43,6 @@ use cap_std::fs::{MetadataExt, PermissionsExt};
 /// The Filesystem struct is an implementation of the StorageBackend trait that keeps its files
 /// inside a specific root directory on local disk.
 ///
-/// [`Filesystem`]: ./trait.Filesystem.html
 #[derive(Debug)]
 pub struct Filesystem {
     // The Arc is necessary so we can pass it to async closures.  Which is of dubious utility

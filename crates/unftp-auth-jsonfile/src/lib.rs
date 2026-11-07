@@ -18,7 +18,7 @@
 //! # PBKDF2 encoded Example
 //!
 //! Both the salt and key need to be base64 encoded.
-//! Currently only HMAC_SHA256 is supported by libunftp (more will be supported later).
+//! Currently only HMAC-SHA256 is supported by this authenticator.
 //!
 //! There are various tools that can be used to generate the key.
 //!
@@ -26,19 +26,19 @@
 //!
 //! Generate a secure salt:
 //! ```sh
-//! salt=$(dd if=/dev/random bs=1 count=8)
+//! salt_hex=$(openssl rand -hex 16)
 //! ```
 //!
 //! Generate the base64 encoded PBKDF2 key, to be copied into the `pbkdf2_key` field of the JSON structure.
 //!
 //! When using `nettle` directly, make sure not to exceed the output length of the digest algorithm (256 bit, 32 bytes in our case):
 //! ```sh
-//! echo -n "mypassword" | nettle-pbkdf2 -i 500000 -l 32 --hex-salt $(echo -n $salt | xxd -p -c 80) --raw |openssl base64 -A
+//! printf '%s' 'mypassword' | nettle-pbkdf2 -i 500000 -l 32 --hex-salt "$salt_hex" --raw | openssl base64 -A
 //! ```
 //!
 //! Convert the salt into base64 to be copied into the `pbkdf2_salt` field of the JSON structure:
 //! ```sh
-//! echo -n $salt | openssl base64 -A
+//! printf '%s' "$salt_hex" | xxd -r -p | openssl base64 -A
 //! ```
 //!
 //! Alternatively to using `nettle` directly, you may use our convenient docker image: bolcom/unftp-key-generator
@@ -61,7 +61,7 @@
 //!     "pbkdf2_salt": "<<BASE_64_RANDOM_SALT>>",
 //!     "pbkdf2_key": "<<BASE_64_KEY>>",
 //!     "pbkdf2_iter": 500000
-//!   },
+//!   }
 //! ]
 //! ```
 //!
@@ -99,18 +99,19 @@
 //!     "username": "bob",
 //!     "password": "it is me",
 //!     "allowed_ip_ranges": ["192.168.178.0/24", "127.0.0.0/8"]
-//!   },
+//!   }
 //! ]
 //! ```
 //!
 //! # Per user certificate validation
 //!
-//! The JSON authenticator can also check that the CN of a client certificate matches a certain
-//! string or substring. Furthermore, password-less; certificate only; authentication can be configured
-//! per user when libunftp is configured to use TLS and specifically also configured to request or
-//! require a client certificate through the [Server.ftps_client_auth](https://docs.rs/libunftp/0.17.4/libunftp/struct.Server.html#method.ftps_client_auth)
-//! method. For this to work correctly a trust store with the root certificate also needs to be configured
-//! with [Server.ftps_trust_store](https://docs.rs/libunftp/0.17.4/libunftp/struct.Server.html#method.ftps_trust_store).
+//! The JSON authenticator can check whether the rendered subject of a client certificate contains
+//! the configured `allowed_cn` string. This is a case-sensitive substring check, not an exact CN
+//! comparison. Certificate-only authentication can also be configured per user when libunftp is
+//! configured to request or require a client certificate through
+//! [`ServerBuilder::ftps_client_auth`](https://docs.rs/libunftp/latest/libunftp/struct.ServerBuilder.html#method.ftps_client_auth).
+//! Configure a trust store with the root certificate through
+//! [`ServerBuilder::ftps_trust_store`](https://docs.rs/libunftp/latest/libunftp/struct.ServerBuilder.html#method.ftps_trust_store).
 //!
 //! Given this example configuration:
 //!
@@ -137,7 +138,7 @@
 //! ]
 //! ```
 //!
-//! we can see that Eve needs to present a valid client certificate with a CN matching "i.am.trusted"
+//! we can see that Eve needs to present a valid client certificate whose subject contains "i.am.trusted"
 //! and then also needs to provide the correct password. Freddie just needs to present a valid
 //! certificate that is signed by a certificate in the trust store. No password is required for
 //! him when logging in. Santa needs to provide a valid certificate and password but the CN can

@@ -5,22 +5,22 @@
 [![Crate License](https://img.shields.io/crates/l/unftp-sbe-gcs.svg)](https://crates.io/crates/unftp-sbe-gcs)
 [![Follow on Telegram](https://img.shields.io/badge/Follow%20on-Telegram-brightgreen.svg)](https://t.me/unftp)
 
-An storage back-end for [libunftp](https://github.com/Cloudinvoke/libunftp) that let you store files
-in [Google Cloud Storage](https://cloud.google.com/storage).
-Please refer to the documentation and the examples directory for usage instructions.
+A storage backend for [libunftp](https://github.com/Cloudinvoke/libunftp) that stores files
+in [Google Cloud Storage](https://cloud.google.com/storage). The example below uses workload
+identity; configure access to the bucket before starting the server.
 
 ## Usage
 
-Add the needed dependencies to Cargo.toml:
+Add the dependencies to `Cargo.toml`:
 
- ```toml
- [dependencies]
+```toml
+[dependencies]
 libunftp = "0.24.0"
-unftp-sbe-gcs = "0.3.1"
+unftp-sbe-gcs = "0.3.2"
 tokio = { version = "1", features = ["full"] }
- ```
+```
 
-And add to src/main.rs:
+Add this to `src/main.rs`:
 
 ```rust
 use libunftp::ServerBuilder;
@@ -37,17 +37,18 @@ pub async fn main() {
     .build()
     .unwrap();
 
-    server.listen("127.0.0.1:2121").await;
+    server.listen("127.0.0.1:2121").await.unwrap();
 }
- ```
+```
 
-For more usage information see the `examples` directory and
-the [libunftp API documentation](https://docs.rs/libunftp/latest/libunftp/).
+For other authentication methods, see [`AuthMethod`](https://docs.rs/unftp-sbe-gcs/latest/unftp_sbe_gcs/options/enum.AuthMethod.html).
+For more usage information, see the [example](https://github.com/Cloudinvoke/libunftp/tree/master/crates/unftp-sbe-gcs/examples)
+and the [backend API documentation](https://docs.rs/unftp-sbe-gcs/latest/unftp_sbe_gcs/).
 
 ## Getting help and staying informed
 
 Support is given on a best effort basis. You are welcome to engage us
-on [Github the discussions page](https://github.com/Cloudinvoke/libunftp/discussions)
+on [the discussions page](https://github.com/Cloudinvoke/libunftp/discussions)
 or create a Github issue.
 
 You can also follow news and talk to us on [Telegram](https://t.me/unftp)

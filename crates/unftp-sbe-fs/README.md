@@ -5,9 +5,9 @@
 [![Crate License](https://img.shields.io/crates/l/unftp-sbe-fs.svg)](https://crates.io/crates/unftp-sbe-fs)
 [![Follow on Telegram](https://img.shields.io/badge/Follow%20on-Telegram-brightgreen.svg)](https://t.me/unftp)
 
-This unftp-sbe-fs crate allows you to use a regular Filesystem with
-[libunftp](https://github.com/Cloudinvoke/libunftp) and work like a regular
-FTP server.
+`unftp-sbe-fs` stores files on the local filesystem for a
+[libunftp](https://github.com/Cloudinvoke/libunftp) FTP server. It confines
+storage operations to the configured root directory.
 
 ## Getting started
 
@@ -17,12 +17,12 @@ If you've got Rust and cargo installed, create your project with
 cargo new myftp
 ```
 
-Add the libunftp and tokio crates to your project's dependencies in `Cargo.toml`.
+Add libunftp, this backend, and Tokio to your project's dependencies in `Cargo.toml`.
 
 ```toml
 [dependencies]
 libunftp = "0.24.0"
-unftp-sbe-fs = "0.4.0"
+unftp-sbe-fs = "0.4.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -42,7 +42,7 @@ pub async fn main() {
         .build()
         .unwrap();
 
-    server.listen("127.0.0.1:2121").await;
+    server.listen("127.0.0.1:2121").await.unwrap();
 }
 ```
 
@@ -54,7 +54,7 @@ lftp -p 2121 localhost
 
 For more help refer to:
 
-- the [examples](./examples) directory.
+- the [examples](https://github.com/Cloudinvoke/libunftp/tree/master/crates/unftp-sbe-fs/examples) directory.
 - the [API Documentation](https://docs.rs/unftp-sbe-fs/latest/unftp_sbe_fs/).
 - [unFTP server](https://github.com/Cloudinvoke/unFTP), a server built on top of libunftp.
 
@@ -73,7 +73,7 @@ Thank you for your interest in contributing to unftp-sbe-fs!
 Please feel free to create a Github issue if you encounter any problems.
 
 Want to submit a feature request or develop your own storage or authentication back-end? Then head over to
-our [contribution guide (CONTRIBUTING.md)](../../CONTRIBUTING.md).
+our [contribution guide](https://github.com/Cloudinvoke/libunftp/blob/master/CONTRIBUTING.md).
 
 ## License
 

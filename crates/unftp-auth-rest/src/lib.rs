@@ -1,5 +1,7 @@
 //! This crate provides a [libunftp](https://crates.io/crates/libunftp) `Authenticator`
-//! implementation that authenticates by consuming a JSON REST API.
+//! implementation that authenticates by calling a JSON REST API. Configure a [`Builder`] with
+//! the request URL, placeholders, a JSON Pointer into the response, and a regular expression
+//! for the accepted value.
 //!
 
 use async_trait::async_trait;
@@ -15,7 +17,7 @@ use unftp_core::auth::{AuthenticationError, Authenticator, Credentials, Principa
 /// A [libunftp](https://crates.io/crates/libunftp) `Authenticator`
 /// implementation that authenticates by consuming a JSON REST API.
 ///
-/// [`Authenticator`]: ../spi/trait.Authenticator.html
+/// [`Authenticator`]: unftp_core::auth::Authenticator
 #[derive(Clone, Debug)]
 pub struct RestAuthenticator {
     username_placeholder: String,
@@ -293,15 +295,20 @@ impl Authenticator for RestAuthenticator {
     }
 }
 
-/// Possible errors while doing REST lookup
-#[allow(missing_docs)] // TODO: fill in these docs
+/// Errors that can occur while constructing or using a REST authentication request.
 #[derive(Debug)]
 pub enum RestError {
+    /// The configured request URI is invalid.
     InvalidUri(InvalidUri),
+    /// The authentication endpoint returned an unsuccessful HTTP status.
     HttpStatusError(u16),
+    /// The HTTP client failed.
     HyperError(hyper::Error),
+    /// A general HTTP request or response error occurred.
     HttpError(String),
+    /// The response could not be parsed as JSON.
     JsonDeserializationError(serde_json::Error),
+    /// A request value could not be serialized as JSON.
     JsonSerializationError(serde_json::Error),
 }
 

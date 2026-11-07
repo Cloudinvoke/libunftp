@@ -4,12 +4,23 @@
 
 - Move libunftp and unFTP from bol.com to [CloudInvoke](https://github.com/Cloudinvoke).
   The GitHub repository is now [Cloudinvoke/libunftp](https://github.com/Cloudinvoke/libunftp).
+- **BREAKING**: [#604](https://github.com/Cloudinvoke/libunftp/pull/604) Add the current directory,
+  client IP, and trace ID to custom `SITE` command contexts. `SiteCommandContext` is now
+  `#[non_exhaustive]`, so code constructing it with a struct literal must use
+  `SiteCommandContext::new` instead.
 - [#606](https://github.com/Cloudinvoke/libunftp/pull/606) Start TLS on the control channel right after the
   `234` reply to `AUTH TLS`, so a client that sends its ClientHello at once is no longer answered in plain text
   ([#605](https://github.com/Cloudinvoke/libunftp/issues/605)).
+- Fix README links, logo rendering, and examples.
+
+### unftp-auth-jsonfile 0.4.1, unftp-auth-pam 0.3.1, unftp-auth-rest 0.3.2, unftp-sbe-fs 0.4.1, unftp-sbe-gcs 0.3.2
+
+- Depend on `unftp-core` 0.1.1 and update dependencies.
 - [#601](https://github.com/bolcom/libunftp/pull/601) Upgrade `base64` to 0.23.1 for the JSON-file
   authenticator, and the filesystem backend's test dependencies to `nix` 0.31.3
-  and `rstest` 0.28.0. These backend releases are pending.
+  and `rstest` 0.28.0.
+- Expand backend READMEs, correct documentation links and examples, and clarify JSON-file
+  certificate matching and PBKDF2 salt generation.
 
 ### unftp-core 0.1.1
 

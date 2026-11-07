@@ -8,7 +8,7 @@
 
 When you need to FTP, but don't want to.
 
-![logo](logo.png)
+![unFTP logo](https://raw.githubusercontent.com/Cloudinvoke/libunftp/master/logo.png)
 
 [**Website**](https://unftp.rs) | [**API Docs**](https://docs.rs/libunftp) | [**unFTP**](https://github.com/Cloudinvoke/unFTP)
 
@@ -25,7 +25,7 @@ possible.
 
 Feature highlights:
 
-* 42 Supported FTP commands (see [commands directory](./src/server/controlchan/commands)) and growing
+* 42 Supported FTP commands (see the [commands directory](https://github.com/Cloudinvoke/libunftp/tree/master/src/server/controlchan/commands)) and growing
 * Ability to implement own storage back-ends
 * Ability to implement own authentication back-ends
 * Ability to implement own `SITE` commands
@@ -79,7 +79,7 @@ To use a specific provider, enable the corresponding feature in your `Cargo.toml
 
 ```toml
 [dependencies]
-libunftp = { version = "0.24.0", features = ["ring"] }  # Use ring
+libunftp = { version = "0.24.0", default-features = false, features = ["ring"] }  # Use ring
 # or
 libunftp = { version = "0.24.0", features = ["aws_lc_rs"] }  # Use aws-lc-rs (default)
 ```
@@ -97,8 +97,8 @@ The following feature flags are included in the default features but can be disa
   sessions, and transfers using the `.metrics()` method on the server builder. **Enabled by default.**
 
 - `proxy_protocol`: Enables [Proxy Protocol](https://www.haproxy.com/blog/haproxy/proxy-protocol/) support. This allows
-  the server to receive client connection information (IP address and port) when behind a proxy or load balancer. *
-  *Enabled by default.**
+  the server to receive client connection information (IP address and port) when behind a proxy or load balancer.
+  **Enabled by default.**
 
 To disable these features and reduce dependencies, use `default-features = false` and explicitly enable only what you
 need:
@@ -134,7 +134,7 @@ add. Here we choose the [file system back-end](https://crates.io/crates/unftp-sb
 ```toml
 [dependencies]
 libunftp = "0.24.0"
-unftp-sbe-fs = "0.4.0"
+unftp-sbe-fs = "0.4.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -154,7 +154,7 @@ pub async fn main() {
         .build()
         .unwrap();
 
-    server.listen("127.0.0.1:2121").await;
+    server.listen("127.0.0.1:2121").await.unwrap();
 }
 ```
 
@@ -166,7 +166,7 @@ lftp -p 2121 localhost
 
 For more help refer to:
 
-- the [examples](./examples) directory.
+- the [examples](https://github.com/Cloudinvoke/libunftp/tree/master/examples) directory.
 - the [API Documentation](https://docs.rs/libunftp).
 - [unFTP server](https://github.com/Cloudinvoke/unFTP), a server built on top of libunftp.
 - this [blog post](https://blog.abstractinvoke.com/05-07-unftp.html) about libunftp and unFTP.
@@ -186,7 +186,7 @@ Thank you for your interest in contributing to libunftp!
 Please feel free to create a Github issue if you encounter any problems.
 
 Want to submit a feature request or develop your own storage or authentication back-end? Then head over to
-our [contribution guide (CONTRIBUTING.md)](CONTRIBUTING.md).
+our [contribution guide](https://github.com/Cloudinvoke/libunftp/blob/master/CONTRIBUTING.md).
 
 ## License
 
