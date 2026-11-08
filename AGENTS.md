@@ -130,6 +130,12 @@ Every new public type, trait, method, field, enum variant, and relevant module m
 
 Public examples should compile as doctests unless they are explicitly marked otherwise. Update examples and documentation when changing a public API.
 
+Before a release, build all workspace examples with `cargo build --examples --workspace`.
+Run each example whose prerequisites are available and check the behavior it demonstrates through
+an FTP client or its documented interface. Examples that need external services, credentials, or
+platform capabilities must be checked with those prerequisites where available; report each
+example you could not run and the missing prerequisite. Compilation alone is not a runtime check.
+
 ### Async code
 
 - The runtime is Tokio.
@@ -304,6 +310,8 @@ For a release:
   (PRs/MRs) and link entries to them where available, following the existing `[#123](https://github.com/Cloudinvoke/libunftp/pull/123)` style.
   Verify the association using GitHub metadata or commit history; do not invent PR numbers.
 - Run `make pr-prep`.
+- Build all workspace examples and perform the runtime example checks described above. Record
+  the result or prerequisite-based skip for each example in the release handoff.
 - Use release commits naming the crate and version.
 - Tags use `{component}-{version}`, for example `libunftp-0.23.0`.
 - GitHub release notes must not start with a markdown heading such as
@@ -343,4 +351,3 @@ Do not publish crates or create tags unless explicitly requested.
 - Use the body to explain what and why and context vs. how
 - Write thoughtful commit messages like David Tolnay
 - Write for the next person reading git log: A good commit title should let you scan history quickly without needing to run git show for every minor bump
-
