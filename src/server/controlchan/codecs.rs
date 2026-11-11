@@ -1,8 +1,17 @@
-use super::{Reply, command::Command, error::ControlChanError, line_parser};
+use super::{
+    Reply,
+    command::Command,
+    error::{ControlChanError, ControlChanErrorKind},
+    line_parser,
+};
 
 use bytes::BytesMut;
 use std::io::Write;
 use tokio_util::codec::{Decoder, Encoder};
+
+// The most bytes we buffer while waiting for the '\n' that ends a command line. RFC 959 sets no
+// limit (vsftpd uses 4096); without one, a client could make the buffer grow until the idle timeout.
+const MAX_LINE_LENGTH: usize = 8192;
 
 // FTPCodec implements tokio's `Decoder` and `Encoder` traits for the control channel, that we'll
 // use to decode FTP commands and encode their responses.
@@ -32,6 +41,8 @@ impl Decoder for FtpCodec {
             let line = buf.split_to(newline_index + 1);
             self.next_index = 0;
             Ok(Some(line_parser::parse(line)?))
+        } else if buf.len() > MAX_LINE_LENGTH {
+            Err(ControlChanErrorKind::CommandLineTooLong.into())
         } else {
             self.next_index = buf.len();
             Ok(None)
@@ -92,5 +103,16 @@ mod tests {
         codec.encode(reply, &mut buf).unwrap();
 
         assert_eq!(buf, "214-Usage: foo\r\n\r\n214 Options:\r\n".as_bytes());
+    }
+
+    #[test]
+    fn decode_rejects_a_line_longer_than_the_limit() {
+        let mut codec = FtpCodec::new();
+        let mut buf = BytesMut::from(&[b'a'; MAX_LINE_LENGTH][..]);
+        assert!(codec.decode(&mut buf).unwrap().is_none());
+
+        buf.extend_from_slice(b"a");
+        let err = codec.decode(&mut buf).unwrap_err();
+        assert!(matches!(err.kind(), ControlChanErrorKind::CommandLineTooLong));
     }
 }

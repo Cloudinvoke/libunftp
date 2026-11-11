@@ -55,6 +55,9 @@ pub enum ControlChanErrorKind {
     /// The control channel is out of sync e.g. expecting username in session after USER command but found none.
     #[display("Control channel in illegal state")]
     IllegalState,
+    /// The client sent a command line longer than the server buffers.
+    #[display("Command line too long")]
+    CommandLineTooLong,
 }
 
 impl ControlChanError {

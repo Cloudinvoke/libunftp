@@ -354,6 +354,7 @@ fn handle_control_channel_error(logger: slog::Logger, error: ControlChanError) -
         ControlChanErrorKind::UnknownCommand { .. } => (Reply::new(ReplyCode::CommandSyntaxError, "Command not implemented"), false),
         ControlChanErrorKind::Utf8Error => (Reply::new(ReplyCode::CommandSyntaxError, "Invalid UTF8 in command"), true),
         ControlChanErrorKind::InvalidCommand => (Reply::new(ReplyCode::ParameterSyntaxError, "Invalid Parameter"), false),
+        ControlChanErrorKind::CommandLineTooLong => (Reply::new(ReplyCode::CommandSyntaxError, "Command line too long"), true),
         ControlChanErrorKind::ControlChannelTimeout => (
             Reply::new(ReplyCode::ClosingControlConnection, "Session timed out. Closing control connection"),
             true,
