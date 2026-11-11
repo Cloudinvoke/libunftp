@@ -21,17 +21,19 @@ impl FtpCodec {
 }
 
 impl Decoder for FtpCodec {
-    type Item = Command;
+    // A malformed line is an item, not a decoder error: Framed ends the stream after a decoder
+    // error, and the control loop would then close the connection.
+    type Item = Result<Command, ControlChanError>;
     type Error = ControlChanError;
 
     // Here we decode the incoming bytes into a meaningful command. We'll split on newlines, and
     // parse the resulting line using `Command::parse()`. This method will be called by tokio.
-    fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<Command>, Self::Error> {
+    fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if let Some(newline_offset) = buf[self.next_index..].iter().position(|b| *b == b'\n') {
             let newline_index = newline_offset + self.next_index;
             let line = buf.split_to(newline_index + 1);
             self.next_index = 0;
-            Ok(Some(line_parser::parse(line)?))
+            Ok(Some(line_parser::parse(line).map_err(ControlChanError::from)))
         } else {
             self.next_index = buf.len();
             Ok(None)
