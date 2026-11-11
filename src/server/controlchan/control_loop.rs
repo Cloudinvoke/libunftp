@@ -233,7 +233,7 @@ where
                 tokio::select! {
                     cmd = command_source.next() => {
                         match cmd {
-                            Some(cmd_result) => incoming = Some(cmd_result.map(Event::Command)),
+                            Some(cmd_result) => incoming = Some(cmd_result.flatten().map(Event::Command)),
                             None => {
                                 slog::info!(logger, "Control connection was closed.");
                                 incoming = Some(Ok(Event::InternalMsg(ControlChanMsg::ExitControlLoop)))
