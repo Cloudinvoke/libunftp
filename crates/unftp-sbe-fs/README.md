@@ -21,7 +21,7 @@ Add libunftp, this backend, and Tokio to your project's dependencies in `Cargo.t
 
 ```toml
 [dependencies]
-libunftp = "0.24.0"
+libunftp = "0.25.0"
 unftp-sbe-fs = "0.4.1"
 tokio = { version = "1", features = ["full"] }
 ```

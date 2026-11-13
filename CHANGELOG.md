@@ -1,8 +1,8 @@
 # Changelog
 
-### Unreleased
+### libunftp 0.25.0
 
-- Move libunftp and unFTP from bol.com to [CloudInvoke](https://github.com/Cloudinvoke).
+- [#602](https://github.com/Cloudinvoke/libunftp/pull/602) Move libunftp and unFTP from bol.com to [CloudInvoke](https://github.com/Cloudinvoke).
   The GitHub repository is now [Cloudinvoke/libunftp](https://github.com/Cloudinvoke/libunftp).
 - **BREAKING**: [#604](https://github.com/Cloudinvoke/libunftp/pull/604) Add the current directory,
   client IP, and trace ID to custom `SITE` command contexts. `SiteCommandContext` is now
@@ -11,6 +11,9 @@
 - [#606](https://github.com/Cloudinvoke/libunftp/pull/606) Start TLS on the control channel right after the
   `234` reply to `AUTH TLS`, so a client that sends its ClientHello at once is no longer answered in plain text
   ([#605](https://github.com/Cloudinvoke/libunftp/issues/605)).
+- Reject buffered command lines exceeding 8192 bytes without a newline, replying with `500` and closing the connection.
+- Reject oversized PROXY protocol headers without panicking and time out incomplete headers after five seconds.
+- Depend on `unftp-core` 0.1.1 and update dependencies.
 - Fix README links, logo rendering, and examples.
 
 ### unftp-auth-jsonfile 0.4.1, unftp-auth-pam 0.3.1, unftp-auth-rest 0.3.2, unftp-sbe-fs 0.4.1, unftp-sbe-gcs 0.3.2
