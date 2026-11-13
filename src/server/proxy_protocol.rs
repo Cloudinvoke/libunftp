@@ -2,10 +2,19 @@ use crate::server::switchboard::SocketAddrPair;
 use bytes::Bytes;
 use proxy_protocol::{ParseError, ProxyHeader, parse, version1::ProxyAddresses};
 use std::net::{SocketAddr, SocketAddrV4};
+use std::time::Duration;
 use thiserror::Error;
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::Sender;
+
+// How long a peer gets to deliver its complete header. A proxy writes the header as soon as it
+// connects, so one that is still missing after this long is not coming, and without a limit a
+// silent connection would hold its task and socket forever. The PROXY protocol specification
+// (section 2) allows this: "The receiver may apply a short timeout and decide to abort the
+// connection if the protocol header is not seen within a few seconds (at least 3 seconds to
+// cover a TCP retransmit)."
+const HEADER_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Error, Debug)]
 #[error("Proxy Protocol Error")]
@@ -25,6 +34,8 @@ enum ProxyError {
     UnsupportedVersion,
     #[error("error reading from stream")]
     ReadError(#[from] std::io::Error),
+    #[error("header was not received in time")]
+    Timeout,
 }
 
 impl PartialEq for ProxyError {
@@ -64,8 +75,9 @@ async fn read_proxy_header(tcp_stream: &mut tokio::net::TcpStream) -> Result<Pro
         match pbuf.iter().position(|b| *b == b'\n') {
             // If a newline character is found, the proxy header should be complete
             Some(pos) => {
-                // If the header size is invalid, return an error
-                if i + pos > rbuf.capacity() || i + pos < 13 {
+                // If the header size is invalid, return an error. `i + pos` is the index of the newline
+                // in the read buffer, so it has to be a valid index: `>=` and not `>`.
+                if i + pos >= rbuf.capacity() || i + pos < 13 {
                     return Err(ProxyError::HeaderSize);
                 }
 
@@ -97,12 +109,18 @@ async fn read_proxy_header(tcp_stream: &mut tokio::net::TcpStream) -> Result<Pro
     }
 }
 
+async fn read_proxy_header_within(limit: Duration, tcp_stream: &mut tokio::net::TcpStream) -> Result<ProxyHeader, ProxyError> {
+    tokio::time::timeout(limit, read_proxy_header(tcp_stream))
+        .await
+        .unwrap_or(Err(ProxyError::Timeout))
+}
+
 /// Takes a tcp stream and reads the proxy protocol header
 /// Sends the extracted proxy connection information (source ip+port, destination ip+port) to the proxy loop
 #[tracing_attributes::instrument]
 pub(super) fn spawn_proxy_header_parsing(logger: slog::Logger, mut tcp_stream: tokio::net::TcpStream, tx: Sender<ProxyHeaderReceived>) {
     tokio::spawn(async move {
-        match read_proxy_header(&mut tcp_stream).await {
+        match read_proxy_header_within(HEADER_TIMEOUT, &mut tcp_stream).await {
             Ok(ProxyHeader::Version1 {
                 addresses: ProxyAddresses::Ipv4 { source, destination },
             }) => {
@@ -258,5 +276,37 @@ mod tests {
                 }
             })
         );
+    }
+
+    #[tokio::test]
+    async fn newline_one_byte_past_the_buffer_returns_error() {
+        let (mut s, mut c) = get_connected_tcp_streams().await;
+
+        let server = tokio::spawn(async move { super::read_proxy_header(&mut s).await });
+        let client = tokio::spawn(async move {
+            // 109 bytes, so the newline sits at index 108: one past the end of the 108 byte buffer.
+            let mut line = vec![b'A'; 109];
+            line[107] = b'\r';
+            line[108] = b'\n';
+            c.write_all(&line).await.unwrap();
+            c.shutdown().await.unwrap();
+        });
+
+        let res = tokio::join!(server, client);
+        let res = res.0.expect("read_proxy_header must not panic");
+
+        assert_eq!(res, Err(ProxyError::HeaderSize));
+    }
+
+    #[tokio::test]
+    async fn stalled_header_times_out() {
+        let (mut s, mut c) = get_connected_tcp_streams().await;
+
+        // The client stays connected but never completes the header.
+        c.write_all("PROXY TCP4 127.0.0.1".as_ref()).await.unwrap();
+
+        let res = super::read_proxy_header_within(Duration::from_millis(100), &mut s).await;
+
+        assert_eq!(res, Err(ProxyError::Timeout));
     }
 }
