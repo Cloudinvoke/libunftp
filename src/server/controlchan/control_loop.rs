@@ -93,6 +93,7 @@ where
 {
     pub storage: Storage,
     pub greeting: &'static str,
+    pub help_text: Option<Arc<[String]>>,
     pub auth_pipeline: Arc<AuthenticationPipeline<User>>,
     pub passive_ports: RangeInclusive<u16>,
     pub passive_host: PassiveHost,
@@ -138,6 +139,7 @@ where
         logger,
         site_md5: sitemd5,
         site_handlers,
+        help_text,
         data_listener,
         presence_listener,
         active_passive_mode,
@@ -178,6 +180,7 @@ where
         tx_proxy_loop: switchboard_msg_tx.clone(),
         sitemd5,
         site_handlers,
+        help_text,
     };
 
     let event_chain = EventDispatcherMiddleware::new(data_listener, presence_listener, event_chain);
@@ -382,6 +385,7 @@ where
     tx_proxy_loop: Option<SwitchboardSender<Storage, User>>,
     sitemd5: SiteMd5,
     site_handlers: Arc<HashMap<String, Arc<dyn SiteCommandHandler<Storage, User>>>>,
+    help_text: Option<Arc<[String]>>,
 }
 
 impl<Storage, User> PrimaryEventHandler<Storage, User>
@@ -485,7 +489,7 @@ where
             Command::Type => Box::new(commands::Type),
             Command::Stru { structure } => Box::new(commands::Stru::new(structure)),
             Command::Mode { mode } => Box::new(commands::Mode::new(mode)),
-            Command::Help => Box::new(commands::Help),
+            Command::Help => Box::new(commands::Help::new(self.help_text.clone())),
             Command::Noop => Box::new(commands::Noop),
             Command::Pasv => Box::new(commands::Pasv::new()),
             Command::Epsv => Box::new(commands::Epsv::new()),

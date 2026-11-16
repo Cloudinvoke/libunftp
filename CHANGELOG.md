@@ -1,5 +1,10 @@
 # Changelog
 
+### Unreleased
+
+- Add `ServerBuilder::help_text` to set the reply to the `HELP` command, which by default names the library
+  and its version to any client ([#608](https://github.com/Cloudinvoke/libunftp/issues/608)).
+
 ### libunftp 0.25.0
 
 - [#602](https://github.com/Cloudinvoke/libunftp/pull/602) Move libunftp and unFTP from bol.com to [CloudInvoke](https://github.com/Cloudinvoke).

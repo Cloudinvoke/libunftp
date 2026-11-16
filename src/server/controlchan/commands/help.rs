@@ -15,9 +15,19 @@ use crate::{
     storage::{Metadata, StorageBackend},
 };
 use async_trait::async_trait;
+use std::sync::Arc;
 
 #[derive(Debug)]
-pub struct Help;
+pub struct Help {
+    // Set with `ServerBuilder::help_text`, else the default text
+    text: Option<Arc<[String]>>,
+}
+
+impl Help {
+    pub fn new(text: Option<Arc<[String]>>) -> Self {
+        Help { text }
+    }
+}
 
 #[async_trait]
 impl<Storage, User> CommandHandler<Storage, User> for Help
@@ -28,6 +38,9 @@ where
 {
     #[tracing_attributes::instrument]
     async fn handle(&self, _args: CommandContext<Storage, User>) -> Result<Reply, ControlChanError> {
+        if let Some(text) = &self.text {
+            return Ok(Reply::new_multiline(ReplyCode::HelpMessage, text.iter()));
+        }
         let text: Vec<String> = vec![
             "Help:".to_string(),
             format!("Powered by libunftp: {}", env!("CARGO_PKG_VERSION")),
