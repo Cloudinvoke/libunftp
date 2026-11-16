@@ -60,6 +60,7 @@ where
 {
     storage: Arc<dyn (Fn() -> Storage) + Send + Sync>,
     greeting: &'static str,
+    help_text: Option<Arc<[String]>>,
     authenticator: Arc<dyn Authenticator>,
     user_detail_provider: Arc<dyn UserDetailProvider<User = User> + Send + Sync>,
     data_listener: Arc<dyn DataListener>,
@@ -91,6 +92,7 @@ where
 {
     storage: Arc<dyn (Fn() -> Storage) + Send + Sync>,
     greeting: &'static str,
+    help_text: Option<Arc<[String]>>,
     authenticator: Arc<dyn Authenticator>,
     user_detail_provider: Arc<dyn UserDetailProvider<User = User> + Send + Sync>,
     data_listener: Arc<dyn DataListener>,
@@ -142,6 +144,7 @@ where
         ServerBuilder {
             storage: Arc::from(sbe_generator),
             greeting: DEFAULT_GREETING,
+            help_text: None,
             authenticator,
             user_detail_provider: Arc::new(DefaultUserDetailProvider {}),
             data_listener: Arc::new(NopListener {}),
@@ -217,6 +220,7 @@ where
         ServerBuilder {
             storage: self.storage,
             greeting: self.greeting,
+            help_text: self.help_text,
             authenticator: self.authenticator,
             user_detail_provider: provider,
             data_listener: self.data_listener,
@@ -275,6 +279,7 @@ where
         ServerBuilder {
             storage: Arc::from(sbe_generator),
             greeting: DEFAULT_GREETING,
+            help_text: None,
             authenticator: Arc::new(AnonymousAuthenticator {}),
             user_detail_provider: provider,
             data_listener: Arc::new(NopListener {}),
@@ -361,6 +366,7 @@ where
         Ok(Server {
             storage: self.storage,
             greeting: self.greeting,
+            help_text: self.help_text,
             authenticator: self.authenticator,
             user_detail_provider: self.user_detail_provider,
             data_listener: self.data_listener,
@@ -521,6 +527,30 @@ where
     /// ```
     pub fn greeting(mut self, greeting: &'static str) -> Self {
         self.greeting = greeting;
+        self
+    }
+
+    /// Set the text of the reply to the `HELP` command, one item per line.
+    ///
+    /// By default the reply names the library and its version, which lets any client, even before
+    /// logging in, know which server software it talks to. Use this to send something else.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use libunftp::ServerBuilder;
+    /// use unftp_sbe_fs::Filesystem;
+    ///
+    /// let server = ServerBuilder::new(Box::new(|| Filesystem::new("/tmp").unwrap()))
+    ///     .help_text(["The following commands are recognized.", "Help OK."])
+    ///     .build();
+    /// ```
+    pub fn help_text<I>(mut self, lines: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        self.help_text = Some(lines.into_iter().map(Into::into).collect());
         self
     }
 
@@ -1062,6 +1092,7 @@ where
             ftps_config: server.ftps_mode.clone(),
             collect_metrics: server.collect_metrics,
             greeting: server.greeting,
+            help_text: server.help_text.clone(),
             idle_session_timeout: server.idle_session_timeout,
             passive_ports: server.passive_ports.clone(),
             passive_host: server.passive_host.clone(),
@@ -1090,6 +1121,7 @@ where
             .field("collect_metrics", &self.collect_metrics)
             .field("active_passive_mode", &self.active_passive_mode)
             .field("greeting", &self.greeting)
+            .field("help_text", &self.help_text)
             .field("logger", &self.logger)
             .field("metrics", &self.collect_metrics)
             .field("passive_ports", &self.passive_ports)
@@ -1119,6 +1151,7 @@ where
             .field("collect_metrics", &self.collect_metrics)
             .field("active_passive_mode", &self.active_passive_mode)
             .field("greeting", &self.greeting)
+            .field("help_text", &self.help_text)
             .field("logger", &self.logger)
             .field("metrics", &self.collect_metrics)
             .field("passive_ports", &self.passive_ports)

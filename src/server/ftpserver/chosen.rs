@@ -22,6 +22,7 @@ where
 {
     pub storage: Arc<dyn (Fn() -> Storage) + Send + Sync>,
     pub greeting: &'static str,
+    pub help_text: Option<Arc<[String]>>,
     pub authenticator: Arc<dyn Authenticator>,
     pub user_detail_provider: Arc<dyn UserDetailProvider<User = User> + Send + Sync>,
     pub passive_ports: RangeInclusive<u16>,
@@ -58,6 +59,7 @@ where
             ftps_config: server.ftps_config.clone(),
             collect_metrics: server.collect_metrics,
             greeting: server.greeting,
+            help_text: server.help_text.clone(),
             idle_session_timeout: server.idle_session_timeout,
             passive_ports: server.passive_ports.clone(),
             passive_host: server.passive_host.clone(),
