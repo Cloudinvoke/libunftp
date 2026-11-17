@@ -73,3 +73,13 @@ async fn help_text_replaces_the_reply() {
     let reply = help_reply(CUSTOM_ADDR).await;
     assert_eq!(reply, ["214-The following commands are recognized.", " ABOR CWD LIST", "214 Help OK."]);
 }
+
+#[test]
+fn help_text_rejects_embedded_crlf() {
+    // An embedded reply terminator could end the 214 response early and leave
+    // forged reply lines for the next command.
+    let root = std::env::temp_dir();
+    let builder = ServerBuilder::new(Box::new(move || Filesystem::new(root.clone()).unwrap())).help_text(["Start\r\n214 End\r\n220 Forged", "Last"]);
+
+    assert!(builder.build().is_err(), "HELP text must contain one protocol line per item");
+}
