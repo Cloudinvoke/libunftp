@@ -1,10 +1,13 @@
 # Changelog
 
-### Unreleased
+### libunftp 0.25.1
 
-- Add `ServerBuilder::help_text` to set the reply to the `HELP` command, which by default names the library
-  and its version to any client ([#608](https://github.com/Cloudinvoke/libunftp/issues/608)). `build()` fails
-  if an entry contains a carriage return or a line feed.
+- [#607](https://github.com/Cloudinvoke/libunftp/pull/607) Keep the control connection open after
+  an invalid command parameter receives a `501` reply.
+- [#609](https://github.com/Cloudinvoke/libunftp/pull/609) Add `ServerBuilder::help_text` to
+  customize the multiline `HELP` reply. Reject carriage returns and line feeds within each
+  configured line at build time.
+- Update compatible dependencies (`bytes`, `nix`, and `uuid`).
 
 ### libunftp 0.25.0
 
