@@ -3,7 +3,8 @@
 ### Unreleased
 
 - Add `ServerBuilder::help_text` to set the reply to the `HELP` command, which by default names the library
-  and its version to any client ([#608](https://github.com/Cloudinvoke/libunftp/issues/608)).
+  and its version to any client ([#608](https://github.com/Cloudinvoke/libunftp/issues/608)). `build()` fails
+  if an entry contains a carriage return or a line feed.
 
 ### libunftp 0.25.0
 
