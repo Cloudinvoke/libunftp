@@ -535,6 +535,9 @@ where
     /// By default the reply names the library and its version, which lets any client, even before
     /// logging in, know which server software it talks to. Use this to send something else.
     ///
+    /// Each item is sent as one line of the reply, so it must not contain a carriage return (`\r`)
+    /// or a line feed (`\n`). If one does, [`build`](Self::build) returns an error.
+    ///
     /// # Example
     ///
     /// ```rust
@@ -550,7 +553,14 @@ where
         I: IntoIterator,
         I::Item: Into<String>,
     {
-        self.help_text = Some(lines.into_iter().map(Into::into).collect());
+        let lines: Arc<[String]> = lines.into_iter().map(Into::into).collect();
+        // A line break inside an item would end the 214 reply early and leave the rest for the
+        // next command.
+        if let Some(line) = lines.iter().find(|line| line.contains(['\r', '\n'])) {
+            self.configuration_error
+                .get_or_insert_with(|| format!("HELP text line contains a line break: {line:?}"));
+        }
+        self.help_text = Some(lines);
         self
     }
 

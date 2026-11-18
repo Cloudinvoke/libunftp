@@ -83,3 +83,21 @@ fn help_text_rejects_embedded_crlf() {
 
     assert!(builder.build().is_err(), "HELP text must contain one protocol line per item");
 }
+
+#[test]
+fn help_text_rejects_lone_lf() {
+    // Many clients end a reply line on LF alone.
+    let root = std::env::temp_dir();
+    let builder = ServerBuilder::new(Box::new(move || Filesystem::new(root.clone()).unwrap())).help_text(["Start\n214 End", "Last"]);
+
+    assert!(builder.build().is_err(), "HELP text must not contain a line feed");
+}
+
+#[test]
+fn help_text_rejects_lone_cr() {
+    // A CR not followed by LF is not valid in a Telnet line.
+    let root = std::env::temp_dir();
+    let builder = ServerBuilder::new(Box::new(move || Filesystem::new(root.clone()).unwrap())).help_text(["Start\r214 End", "Last"]);
+
+    assert!(builder.build().is_err(), "HELP text must not contain a carriage return");
+}
