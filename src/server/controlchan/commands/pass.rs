@@ -69,7 +69,7 @@ where
                 let session2clone = args.session.clone();
                 let creds = unftp_core::auth::Credentials {
                     password: Some(pass),
-                    source_ip: session.source.ip(),
+                    source_ip: session.client_addr().ip(),
                     certificate_chain: session.cert_chain.clone(),
                     command_channel_security: if session.cmd_tls {
                         ChannelEncryptionState::Tls
@@ -78,7 +78,7 @@ where
                     },
                 };
                 let failed_logins = session.failed_logins.clone();
-                let source_ip = session.source.ip();
+                let source_ip = session.client_addr().ip();
                 tokio::spawn(async move {
                     let msg = match auth_pipeline.authenticate_and_get_user(&username, &creds).await {
                         Ok(user) => {

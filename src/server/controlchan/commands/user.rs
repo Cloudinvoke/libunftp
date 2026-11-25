@@ -44,7 +44,7 @@ where
                         &Credentials {
                             certificate_chain: session.cert_chain.clone(),
                             password: None,
-                            source_ip: session.source.ip(),
+                            source_ip: session.client_addr().ip(),
                             command_channel_security: if session.cmd_tls {
                                 ChannelEncryptionState::Tls
                             } else {
