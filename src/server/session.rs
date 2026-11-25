@@ -180,6 +180,12 @@ where
         self
     }
 
+    // The address of the client: in proxy protocol mode the source address given in the PROXY
+    // header, otherwise the peer address of the control connection.
+    pub(crate) fn client_addr(&self) -> SocketAddr {
+        self.control_connection.map_or(self.source, |pair| pair.source)
+    }
+
     pub fn failed_logins(mut self, failed_logins: Option<Arc<FailedLoginsCache>>) -> Self {
         self.failed_logins = failed_logins;
         self

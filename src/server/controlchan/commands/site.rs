@@ -37,7 +37,7 @@ impl Site {
             user: session.user.clone(),
             logger: context.logger.clone(),
             cwd: session.cwd.clone(),
-            source_ip: session.control_connection.map_or(session.source, |pair| pair.source).ip(),
+            source_ip: session.client_addr().ip(),
             trace_id: session.trace_id.to_string(),
         }
     }
